@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Green With Ivy Checkout</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Berkshire+Swash&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <!-- Header Section -->
+    <header>
+        <a href="index.html" class="no-underline"><h1>Green With Ivy</h1></a>
+        <h2>Checkout</h2>
+        <nav>
+            <div id="nav-icons">
+                <a href="login.html" id="home-icon"><i class="fas fa-home"></i><span class="tooltip">Home</span></a>
+                <a href="cart.html" id="cart-icon"><i class="fas fa-shopping-cart"></i><span class="tooltip">View Cart</span></a>
+                <a href="login.html" id="login-icon"><i class="fas fa-user"></i><span class="tooltip">Login</span></a>
+            </div>
+            <button id="logout-button">Logout</button> <!-- Logout button -->
+        </nav>
+    </header>
+
+    <!-- Main Section -->
+    <main>
+        <section id="checkout" class="checkout-section">
+            <!-- Checkout form will be dynamically loaded here -->
+            <div id="checkout-summary">
+                <h2>Order Checkout Summary</h2>
+                <ul id="cart-items-list"></ul>
+                <h3>Total: $<span id="total-price">0.00</span></h3>
+            </div>
+            <form id="payment-form">
+                <label for="card-element">Credit or debit card</label>
+                <div id="card-element"><!-- Mock payment element --></div>
+                <button id="submit" type="submit">Pay</button>
+                <div id="error-message"></div>
+            </form>
+            <div id="confirmation-message"></div>
+        </section>
+    </main>
+
+    <!-- Footer Section -->
+    <footer>
+        <p>&copy; 2024 Green with Ivy Online Nursery. All rights reserved.</p>
+    </footer>
+
+    <!-- JavaScript -->
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            const cartItems = JSON.parse(localStorage.getItem('checkoutCart')) || [];
+            const totalAmount = localStorage.getItem('totalAmount') || '0.00';
+            displayCartItems(cartItems, totalAmount);
+            const form = document.getElementById('payment-form');
+            form.addEventListener('submit', async (event) => {
+                event.preventDefault();
+                mockPayment(totalAmount);
+            });
+        });
+
+        // Function to display cart items and total amount
+        const displayCartItems = (cartItems, totalAmount) => {
+            const cartItemsList = document.getElementById('cart-items-list');
+            const totalAmountElement = document.getElementById('total-price');
+            cartItemsList.innerHTML = '';
+
+            cartItems.forEach(item => {
+                const listItem = document.createElement('li');
+                listItem.textContent = `${item.name} - $${item.price} x ${item.cart_quantity}`;
+                cartItemsList.appendChild(listItem);
+            });
+
+            totalAmountElement.textContent = totalAmount;
+        };
+
+        // Function to mock payment
+        const mockPayment = async (amount) => {
+            try {
+                const response = await fetch('http://localhost:3307/mock-payment', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ amount })
+                });
+                const data = await response.json();
+                if (data.message === 'Payment successful!') {
+                    finalizeOrder(); // Call finalizeOrder after successful payment
+                } else {
+                    document.getElementById('error-message').textContent = 'Payment failed.';
+                }
+            } catch (error) {
+                console.error('Error processing payment:', error);
+                document.getElementById('error-message').textContent = 'Error processing payment.';
+            }
+        };
+
+        // Function to finalize order
+        const finalizeOrder = async () => {
+            const cartItems = JSON.parse(localStorage.getItem('checkoutCart')) || [];
+            const totalAmount = localStorage.getItem('totalAmount') || '0.00';
+
+            try {
+                const response = await fetch('http://localhost:3307/finalize-order', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cartItems, totalAmount })
+                });
+                const data = await response.json();
+                if (data.message === 'Order finalized successfully!') {
+                    document.getElementById('confirmation-message').textContent = 'Order finalized successfully!';
+                    document.getElementById('confirmation-message').style.display = 'block';
+                    localStorage.removeItem('checkoutCart'); // Clear cart
+                    localStorage.removeItem('totalAmount'); // Clear total amount
+                    updateInventory(cartItems); // Update inventory
+                } else {
+                    document.getElementById('error-message').textContent = 'Failed to finalize order.';
+                }
+            } catch (error) {
+                console.error('Error finalizing order:', error);
+                document.getElementById('error-message').textContent = 'Error finalizing order.';
+            }
+        };
+
+        // Function to update inventory
+        const updateInventory = async (cartItems) => {
+            try {
+                const response = await fetch('http://localhost:3307/update-inventory', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ cartItems })
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to update inventory');
+                }
+                console.log('Inventory updated successfully');
+            } catch (error) {
+                console.error('Error updating inventory:', error);
+            }
+        };
+    </script>
+</body>
+</html>

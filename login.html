@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Green With Ivy</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Berkshire+Swash&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <a href="index.html" class="no-underline"><h1>Green With Ivy</h1></a>
+        <h2>Login or Register</h2>
+        <nav>
+            <div id="nav-icons">
+                <a href="index.html" id="home-icon"><i class="fas fa-home"></i><span class="tooltip">Home</span></a>
+                <a href="cart.html" id="cart-icon"><i class="fas fa-shopping-cart"></i><span class="tooltip">View Cart</span></a>
+            </div>
+        </nav>
+    </header>
+
+    <main>
+        <section id="login-section" class="login-section">
+            <h2>Please login or Register to Access our website</h2>
+            <!-- Login Form -->
+            <form id="login-form">
+                <div class="form-group">
+                   <!-- <label for="server">Server</label>-->
+                    <input type="hidden" id="server" name="server" value= "localhost" required>
+                </div>
+                <div class="form-group">
+                <!--<label for="database">Database</label>-->
+                    <input type="hidden" id="database" name="database" value= "nursery" required>
+                </div>
+                <div class="form-group">
+                    <label for="username">Username</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password</label>
+                    <input type="password" id="password" name="password" placeholder="Password" required>
+                </div>
+                <button type="button" id="loginButton">Login</button>
+            </form>
+            <div id="loginResult"></div>
+        </section>
+        <a href="register.html" class="button">Register</a>
+    </main>
+
+    <footer>
+        <p>© 2024 Green with Ivy Online Nursery. All rights reserved.</p>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script>
+        // Handle login button click
+        $('#loginButton').click(function(){
+            var server = $('#server').val();
+            var database = $('#database').val();
+            var user = $('#username').val();
+            var password = $('#password').val();
+
+            if(!server || !database || !user || !password){
+                $("#loginResult").html("All fields are required.");
+                return;
+            }
+
+            // Send login request to server
+            $.post('http://localhost:3307/connect', {
+                server: server,
+                database: database,
+                user: user,
+                password: password
+            }, function(data) {
+                $("#loginResult").html(data.message);
+                if (data.message === 'Connected successfully!') {
+                    localStorage.setItem('loggedIn', 'true'); // Set login flag
+                    localStorage.setItem('username', user); // Store username
+                    window.location.href = 'index.html'; // Redirect to homepage
+                }
+            }).fail(function() {
+                $("#loginResult").html("Error logging in.");
+            });
+        });
+
+
+        
+    </script>
+</body>
+</html>
