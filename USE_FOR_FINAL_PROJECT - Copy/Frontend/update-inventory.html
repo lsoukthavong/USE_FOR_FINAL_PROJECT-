@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Plant Inventory</title>
+    <link rel="stylesheet" href="styles.css">
+    <link href="https://fonts.googleapis.com/css2?family=Berkshire+Swash&display=swap" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <a href="index.html" class="no-underline"><h1>Green With Ivy</h1></a>     
+        <h2>Update Inventory</h2>
+        <input type="text" id="search-input" placeholder="Search for plants...">
+        <button id="search-button" >Search</button>
+        <nav> 
+            <a href="index.html" id="home-icon"><i class="fas fa-home"></i><span class="tooltip">Home</span></a>
+        </nav>
+    </header>
+
+    <main>
+        <section id="plants" class="plant-section">
+            <!-- Plant cards with editable fields will be dynamically loaded here -->
+        </section>
+        <div id="update-confirmation-message"></div>
+        <section id="add-plant-section">
+            <h3>Add New Plant</h3>
+            <form id="add-plant-form">
+                <input type="text" id="new-plant-name" placeholder="Plant Name" required>
+                <input type="text" id="new-plant-type" placeholder="Type" required>
+                <textarea id="new-plant-description" placeholder="Plant Description" required></textarea>
+                <input type="number" id="new-plant-price" placeholder="Price" step="0.01" required>
+                <input type="number" id="new-plant-quantity" placeholder="Quantity" required>
+                <input type="text" id="new-plant-image-url" placeholder="Image URL" required>
+                <button type="submit">Add Plant</button>
+            </form>
+        </section>
+        <section id="plants" class="plant-section">
+            <!-- Plant cards with editable fields will be dynamically loaded here -->
+        </section>
+        <div id="update-confirmation-message"></div>
+    </main>
+
+    <footer>
+        <p>© 2024 Green with Ivy Online Nursery. All rights reserved.</p>
+    </footer>
+
+    <script>
+        let plants = []; // Declare plants array globally
+
+// Fetch plants with optional search query
+const fetchPlants = async (query = '') => {
+    try {
+        const response = await fetch(`http://localhost:3307/plants?search=${query}`);
+        if (!response.ok) {
+            throw new Error("Failed to fetch Plants");
+        }
+        plants = await response.json(); // Assign fetched plants to global variable
+        renderPlants(plants, query);
+    } catch (error) {
+        console.error("Error fetching plants:", error);
+        document.getElementById("error-message").style.display = "block";
+    }
+};
+
+// Render plants with editable fields
+const renderPlants = (plants, query = '') => {
+    const plantsSection = document.getElementById('plants');
+    plantsSection.innerHTML = '';
+
+    // Filter plants based on the search query
+    const filteredPlants = plants.filter(plant => 
+        plant.name.toLowerCase().includes(query.toLowerCase()) || 
+        plant.description.toLowerCase().includes(query.toLowerCase())
+    );
+
+    filteredPlants.forEach(plant => {
+        const plantCard = document.createElement('div');
+        plantCard.className = 'plant-card';
+        plantCard.innerHTML = `
+            <img src="${plant.image_url}" alt="${plant.name}">
+            <input type="text" value="${plant.name}" data-id="${plant.plantId}" class="plant-name">
+            <input type="text" value="${plant.type}" data-id="${plant.plantId}" class="plant-type">
+            <textarea data-id="${plant.plantId}" class="plant-description">${plant.description}</textarea>
+            <input type="number" value="${plant.price}" data-id="${plant.plantId}" class="plant-price">
+            <input type="number" value="${plant.quantity}" data-id="${plant.plantId}" class="plant-quantity">
+            <input type="text" value="${plant.image_url}" data-id="${plant.plantId}" class="plant-image-url">
+            <button class="update-plant" data-id="${plant.plantId}">Update</button>
+        `;
+        plantsSection.appendChild(plantCard);
+    });
+
+    // Add event listeners to "Update" buttons
+    const updateButtons = document.querySelectorAll('.update-plant');
+    updateButtons.forEach(button => {
+        button.addEventListener('click', updatePlant);
+    });
+};
+
+// Update plant details
+const updatePlant = async (event) => {
+    const plantId = event.target.getAttribute('data-id');
+    console.log(`Updating plant with ID: ${plantId}`); // Debugging log
+    const name = document.querySelector(`.plant-name[data-id="${plantId}"]`).value;
+    const description = document.querySelector(`.plant-description[data-id="${plantId}"]`).value;
+    const type = document.querySelector(`.plant-type[data-id="${plantId}"]`).value;
+    const price = document.querySelector(`.plant-price[data-id="${plantId}"]`).value;
+    const quantity = document.querySelector(`.plant-quantity[data-id="${plantId}"]`).value;
+    const imageUrl = document.querySelector(`.plant-image-url[data-id="${plantId}"]`).value;
+    const token = localStorage.getItem('token');
+
+    try {
+        const response = await fetch(`http://localhost:3307/plants/${plantId}/inventory`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': token
+            },
+            body: JSON.stringify({ name, description, type, price, quantity, image_url: imageUrl })
+        });
+        const data = await response.json();
+        if (data.message) {
+            showUpdateConfirmationMessage('Plant updated successfully!');
+        } else {
+            throw new Error(data.error);
+        }
+    } catch (error) {
+        console.error('Error updating plant:', error);
+        showUpdateConfirmationMessage('Failed to update plant.');
+    }
+};
+
+// Show confirmation message after updating plant
+const showUpdateConfirmationMessage = (message) => {
+    const confirmationMessage = document.getElementById('update-confirmation-message');
+    confirmationMessage.textContent = message;
+    confirmationMessage.style.display = 'block';
+    setTimeout(() => {
+        confirmationMessage.style.display = 'none';
+    }, 3000); // Hide the message after 3 seconds
+};
+
+// Handle Search Button Click
+document.getElementById('search-button').addEventListener('click', () => {
+    const query = document.getElementById('search-input').value;
+    fetchPlants(query);
+});
+
+// Fetch plants on page load
+fetchPlants();
+</script>
+</body>
+</html>
